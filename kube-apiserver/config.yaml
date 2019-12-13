@@ -38,8 +38,6 @@ apiServerArguments:
   - etcd3
   storage-media-type:
   - application/vnd.kubernetes.protobuf
-  advertise-address:
-  - "${EXTERNAL_API_IP_ADDRESS}"
 auditConfig:
   auditFilePath: "/var/log/kube-apiserver/audit.log"
   enabled: true

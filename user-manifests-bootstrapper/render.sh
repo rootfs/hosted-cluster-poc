@@ -8,7 +8,7 @@ source ../lib/common.sh
 for f in ../manifests/user/{*.yaml,*.yml}; do
   IFS=’.’ read -ra NAME <<< "$(basename "${f}")"
   cmname=$(echo ${NAME[0]} | tr '_' '-')
-  oc create configmap user-manifest-${cmname} --from-file=data=$f --dry-run -o yaml > ../manifests/managed/user_manifest_$(basename $f)
+  kubectl create configmap user-manifest-${cmname} --from-file=data=$f --dry-run -o yaml > ../manifests/managed/user_manifest_$(basename $f)
 done
 
 cat > ../manifests/managed/kube-service-kubeconfig.yaml <<EOF

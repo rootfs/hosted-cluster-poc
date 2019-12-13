@@ -27,7 +27,7 @@ spec:
                     operator: In
                     values: ["openshift-apiserver"]
               topologyKey: "failure-domain.beta.kubernetes.io/zone"
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       containers:
       - name: openshift-apiserver
         image: ${OPENSHIFT_APISERVER_IMAGE}

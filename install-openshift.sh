@@ -5,7 +5,7 @@ source lib/common.sh
 
 export API_NODEPORT="${API_NODEPORT:-$EXTERNAL_API_PORT}"
 
-if ! oc get pods --request-timeout=5s &>/dev/null; then
+if ! kubectl get pods --request-timeout=5s &>/dev/null; then
   echo "Unable to connect to the management cluster."
   echo "Ensure KUBECONFIG env var is set to user with cluster-admin on the management cluster."
 fi
@@ -26,9 +26,10 @@ rm -rf manifests
 mkdir -p manifests/managed manifests/user
 KUBEADMIN_PASSWORD=$(openssl rand -hex 24 | tr -d '\n')
 echo $KUBEADMIN_PASSWORD > kubeadmin-password
-oc create secret generic kubeadmin -n kube-system --from-literal=kubeadmin="$(htpasswd -bnBC 10 "" "${KUBEADMIN_PASSWORD}" | tr -d ':\n')" -oyaml --dry-run > manifests/user/kubeadmin-secret.yaml
-oc create secret generic pull-secret --from-file=.dockerconfigjson=pull-secret --type=kubernetes.io/dockerconfigjson -oyaml --dry-run > manifests/managed/pull-secret.yaml
-oc create secret generic pull-secret -n openshift-config --from-file=.dockerconfigjson=pull-secret --type=kubernetes.io/dockerconfigjson -oyaml --dry-run > manifests/user/00-pull-secret.yaml
+kubectl create secret generic kubeadmin -n kube-system --from-literal=kubeadmin="$(htpasswd -bnBC 10 "" "${KUBEADMIN_PASSWORD}" | tr -d ':\n')" -oyaml --dry-run > manifests/user/kubeadmin-secret.yaml
+kubectl create secret generic pull-secret --from-file=.dockerconfigjson=pull-secret --type=kubernetes.io/dockerconfigjson -oyaml --dry-run > manifests/managed/pull-secret.yaml
+kubectl create secret generic pull-secret -n openshift-config --from-file=.dockerconfigjson=pull-secret --type=kubernetes.io/dockerconfigjson -oyaml --dry-run > manifests/user/00-pull-secret.yaml
+set -x
 for component in etcd kube-apiserver kube-controller-manager kube-scheduler cluster-bootstrap openshift-apiserver openshift-controller-manager openvpn cluster-version-operator auto-approver ca-operator user-manifests-bootstrapper; do
   pushd ${component} >/dev/null
   ./render.sh >/dev/null
@@ -42,16 +43,22 @@ else
   echo "No platform to setup resources"
   exit 0
 fi
-
+set -x
 echo "Applying management cluster resources"
 # use `create ns` instead of `new-project` in case management cluster in not OCP
 oc get ns ${NAMESPACE} &>/dev/null || oc create ns ${NAMESPACE} >/dev/null
 oc project ${NAMESPACE} >/dev/null
+
+kubectl create clusterrolebinding hosted-cluster-admin   --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:default
+
 pushd manifests/managed >/dev/null
-oc apply -f pull-secret.yaml >/dev/null
+#oc apply -f pull-secret.yaml >/dev/null
+kubectl apply -n ${NAMESPACE} -f pull-secret.yaml > /dev/null
+
 oc secrets link default pull-secret --for=pull >/dev/null
 rm -f pull-secret.yaml
-oc apply -f . >/dev/null
+#oc apply -f . >/dev/null
+kubectl apply -n ${NAMESPACE} -f . > /dev/null
 popd >/dev/null
 
 # Allow privileged pods for this namespace

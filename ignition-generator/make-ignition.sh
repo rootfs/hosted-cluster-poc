@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -eu
+#set -eu
+set -x
 
 source ../config-defaults.sh
 
